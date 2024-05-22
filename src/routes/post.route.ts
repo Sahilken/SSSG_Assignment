@@ -53,3 +53,6 @@ router.post("/upload", upload.single("file"), Controllers.uploadFileFeedback);
 router.get("/", Controllers.getFileData);
 
 router.get("/subscription-price", Controllers.calculateSubPrice);
+
+//apart from assignment
+router.get("/jsontocsv", Controllers.uploadToCsv);

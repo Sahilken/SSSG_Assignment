@@ -3,7 +3,7 @@ import path from "path";
 import csvParser from "csv-parser";
 import fs from "fs";
 import { User } from "../models/myModule";
-import { find } from "lodash";
+import { createObjectCsvStringifier } from "csv-writer";
 
 export class controllers {
    async uploadFileFeedback(
@@ -12,7 +12,7 @@ export class controllers {
       next: NextFunction
    ) {
       try {
-         console.log("I am in upload cont");
+         console.log("I am in upload container");
          const filePath = path.join(
             __dirname,
             "../uploaded_files",
@@ -42,26 +42,30 @@ export class controllers {
 
    async calculateSubPrice(req: Request, res: Response, next: NextFunction) {
       try {
-         if (!req.query) {
-            return res.send({ error: "Please give email address" });
+         if (!req.body || !req.body.Email) {
+            return res.status(400).send({ error: "Please give email address" });
          }
          let BasePrice: number = 100;
          let PricePerCreditLine = 10;
          let PricePerCreditScorePoint = 5;
-         let userGivenEmail = req.query.Email;
-         const findUser = await User.findOne({ Email: userGivenEmail });
-         if (!findUser) {
+
+         let userEmail = req.body.Email;
+
+         const user = await User.findOne({ Email: userEmail });
+
+         if (!user) {
             return res.status(404).send({ error: "User not found" });
          }
-         const CreditScore = findUser.CreditScore;
-         const CreditLines = findUser.CreditLines;
+
+         const CreditScore = user.CreditScore;
+         const CreditLines = user.CreditLines;
          console.log("am i here");
-         const SubscriptionPrice =
+         const subscriptionPrice =
             BasePrice +
             PricePerCreditLine * CreditLines +
             PricePerCreditScorePoint * CreditScore;
 
-         res.send({ SubscriptionPrice });
+         res.send({ SubscriptionPrice: subscriptionPrice });
       } catch (err) {
          next(err);
       }
@@ -79,6 +83,26 @@ export class controllers {
       } catch (err) {
          next(err);
       }
+   }
+
+   async uploadToCsv(req: Request, res: Response, next: NextFunction) {
+      const userData = await User.find({}).lean(); //items
+      if (userData.length === 0) {
+         return res.status(404).json({ message: "No user data found" });
+      }
+      const header = Object.keys(userData[0]).map((key) => ({
+         id: key,
+         title: key,
+      }));
+      const csvStringifier = createObjectCsvStringifier({ header });
+
+      const csv =
+         csvStringifier.getHeaderString() +
+         csvStringifier.stringifyRecords(userData);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", 'attachment; filename="users.csv"');
+      console.log("CSV file:", csv);
+      res.send(csv);
    }
 }
 

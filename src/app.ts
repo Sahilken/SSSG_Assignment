@@ -1,4 +1,4 @@
-import express, { response } from "express";
+import express from "express";
 import { router } from "./routes/post.route";
 import * as dotenv from "dotenv";
 import { db } from "./db/db";
